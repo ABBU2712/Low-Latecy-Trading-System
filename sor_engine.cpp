@@ -1,55 +1,78 @@
 #include <iostream>
 #include <vector>
+#include <map>
 #include <string>
 #include <algorithm>
 #include <iomanip>
 
-// Structure for Venue Data
+// Structure for venue data
 struct VenueData {
     std::string venue_name;
     double price;
     double liquidity;
     double latency;
-    double score; // Computed score
+    double score;
 };
 
-// Normalize function
+// Structure for execution metrics
+struct ExecutionMetrics {
+    double fill_rate;
+    double slippage;
+    double latency;
+};
+
+// Normalize data
 double normalize(double value, double min, double max) {
-    if (max - min == 0) return 0.0;
+    if (max - min == 0) return 0.0; // Avoid division by zero
     return (value - min) / (max - min);
 }
 
-// Compute score function
-double compute_score(const VenueData& venue, double price_weight, double liquidity_weight, double latency_weight) {
-    return (price_weight * venue.price) +
-           (liquidity_weight * venue.liquidity) +
-           (latency_weight * (1.0 - venue.latency)); // Inverted latency
+// Compute venue score
+double compute_score(const VenueData& venue, const std::map<std::string, double>& weights) {
+    return (weights.at("price") * venue.price) +
+           (weights.at("liquidity") * venue.liquidity) +
+           (weights.at("latency") * (1.0 - venue.latency));
 }
 
-// Main SOR Engine logic
+// Calculate metrics
+ExecutionMetrics calculate_metrics(double executed_volume, double order_volume, double execution_price, double expected_price, double send_time, double receive_time) {
+    ExecutionMetrics metrics;
+    metrics.fill_rate = (executed_volume / order_volume) * 100;
+    metrics.slippage = ((execution_price - expected_price) / expected_price) * 100;
+    metrics.latency = (receive_time - send_time) * 1000; // Convert seconds to ms
+    return metrics;
+}
+
+// Adjust weights dynamically
+void adjust_weights(std::map<std::string, double>& weights, const ExecutionMetrics& metrics) {
+    double learning_rate = 0.1;
+
+    weights["price"] += learning_rate * (1.0 - metrics.slippage);
+    weights["liquidity"] += learning_rate * (metrics.fill_rate / 100.0);
+    weights["latency"] -= learning_rate * (metrics.latency / 1000.0);
+
+    // Normalize weights
+    double total_weight = weights["price"] + weights["liquidity"] + weights["latency"];
+    weights["price"] /= total_weight;
+    weights["liquidity"] /= total_weight;
+    weights["latency"] /= total_weight;
+}
+
+// Main function
 int main() {
-    // Example venue data
+    // Initialize weights
+    std::map<std::string, double> weights = {{"price", 0.5}, {"liquidity", 0.3}, {"latency", 0.2}};
+
+    // Sample venue data
     std::vector<VenueData> venues = {
-        {"Venue A", 100.10, 2000, 5},
-        {"Venue B", 100.20, 1500, 10},
-        {"Venue C", 100.05, 2500, 3}
+        {"Venue A", 0.33, 0.50, 0.29},
+        {"Venue B", 1.00, 0.00, 1.00},
+        {"Venue C", 0.00, 1.00, 0.00}
     };
 
-    // Normalize data
-    double min_price = 100.05, max_price = 100.20;
-    double min_liquidity = 1500, max_liquidity = 2500;
-    double min_latency = 3, max_latency = 10;
-
+    // Compute initial scores
     for (auto& venue : venues) {
-        venue.price = normalize(venue.price, min_price, max_price);
-        venue.liquidity = normalize(venue.liquidity, min_liquidity, max_liquidity);
-        venue.latency = normalize(venue.latency, min_latency, max_latency);
-    }
-
-    // Compute scores
-    double price_weight = 0.5, liquidity_weight = 0.3, latency_weight = 0.2;
-    for (auto& venue : venues) {
-        venue.score = compute_score(venue, price_weight, liquidity_weight, latency_weight);
+        venue.score = compute_score(venue, weights);
     }
 
     // Sort venues by score
@@ -57,21 +80,36 @@ int main() {
         return a.score > b.score;
     });
 
-    // Print ranked venues
-    std::cout << "Ranked Venues:\n";
-    for (const auto& venue : venues) {
-        std::cout << venue.venue_name << " - Score: " << std::fixed << std::setprecision(2) << venue.score << "\n";
-    }
+    // Simulated order execution
+    std::vector<std::map<std::string, double>> executions = {
+        {{"order_volume", 1000}, {"executed_volume", 800}, {"expected_price", 100.0}, {"execution_price", 100.5}, {"send_time", 0.001}, {"receive_time", 0.0035}},
+        {{"order_volume", 500}, {"executed_volume", 500}, {"expected_price", 101.0}, {"execution_price", 100.8}, {"send_time", 0.002}, {"receive_time", 0.004}},
+    };
 
-    // Split orders
-    double order_size = 1000; // Example order size
-    std::cout << "\nOrder Allocation:\n";
-    double total_score = 0.0;
-    for (const auto& venue : venues) total_score += venue.score;
+    // Process each execution
+    for (size_t i = 0; i < executions.size(); ++i) {
+        auto exec = executions[i];
 
-    for (const auto& venue : venues) {
-        double allocation = (venue.score / total_score) * order_size;
-        std::cout << venue.venue_name << ": " << allocation << " shares\n";
+        // Calculate metrics
+        ExecutionMetrics metrics = calculate_metrics(
+            exec["executed_volume"], exec["order_volume"],
+            exec["execution_price"], exec["expected_price"],
+            exec["send_time"], exec["receive_time"]
+        );
+
+        // Adjust weights based on metrics
+        adjust_weights(weights, metrics);
+
+        // Recompute scores with updated weights
+        for (auto& venue : venues) {
+            venue.score = compute_score(venue, weights);
+        }
+
+        // Output updated weights
+        std::cout << "Updated Weights after Execution " << (i + 1) << ":\n";
+        std::cout << "  Price: " << std::fixed << std::setprecision(2) << weights["price"] << "\n";
+        std::cout << "  Liquidity: " << weights["liquidity"] << "\n";
+        std::cout << "  Latency: " << weights["latency"] << "\n\n";
     }
 
     return 0;

@@ -1,0 +1,16 @@
+{
+    "asks": [
+        {
+            "amount": 1.0,
+            "price": 100028.0,
+            "stock": "BTC/USD"
+        }
+    ],
+    "bids": [
+        {
+            "amount": 1.0,
+            "price": 100024.0,
+            "stock": "BTC/USD"
+        }
+    ]
+}
