@@ -3,7 +3,8 @@
 **Built using C++ (Boost Asio, WebSocket++, UDP) & React.js**  
 **Simulates trading, order execution, and trade metrics in real-time**
 
-![Trading Dashboard](./screenshot.png)  
+<img width="1266" alt="image" src="https://github.com/user-attachments/assets/96e613f6-aa5b-40e1-9d93-8522c5118709" />
+
 *(Replace with an actual screenshot of the dashboard)*
 
 ---
