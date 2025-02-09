@@ -1,30 +1,29 @@
-# Step 1: Base Image (Ubuntu for C++ & Python)
-FROM ubuntu:22.04
+# Use Ubuntu as base image
+FROM ubuntu:latest
 
-# Step 2: Install Required Packages
-RUN apt update && apt install -y \
-    g++ cmake make libboost-all-dev \
-    python3 python3-pip \
-    nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
+# Install required dependencies
+RUN apt-get update && apt-get install -y \
+    git cmake g++ libboost-all-dev nlohmann-json3-dev \
+    libssl-dev  # ✅ This installs OpenSSL (fixes -lssl & -lcrypto error)
 
-# Step 3: Set Working Directory
+# Set working directory
 WORKDIR /app
 
-# Step 4: Copy All Files
-COPY . .
+# Copy project files into the container
+COPY . /app
 
-# Step 5: Compile C++ Trading Engine
-RUN g++ -o sor_engine sor_integration.cpp -lboost_system -lpthread -std=c++17
+# Install WebSocket++
+RUN git clone https://github.com/zaphoyd/websocketpp.git && \
+    cp -r websocketpp /usr/include/
 
-# Step 6: Install Python Dependencies
-RUN pip install -r requirements.txt
+# Compile the C++ Trading Engine
+RUN g++ -std=c++17 -o sor_engine sor_integration.cpp \
+    -I /usr/include/websocketpp -I /usr/include/nlohmann \
+    -L /usr/local/lib \
+    -lboost_system -lboost_thread -lssl -lcrypto -lpthread
 
-# Step 7: Install Frontend Dependencies
-RUN cd orderbook-dashboard && npm install && npm run build
+# ✅ Ensure binary is executable
+RUN chmod +x /app/sor_engine
 
-# Step 8: Expose Ports for WebSocket & UDP
-EXPOSE 9001 9002 3000
-
-# Step 9: Run All Services (C++ Engine, Python WebSockets, React)
-CMD ["sh", "-c", "./sor_engine & python3 udp_socket_server.py & cd orderbook-dashboard && npm start"]
+# Set entrypoint
+CMD ["./sor_engine"]
