@@ -44,3 +44,15 @@
 │   └── integration_tests     # End-to-end testing scripts
 ├── CMakeLists.txt            # Build configuration for the backend
 └── README.md                 # Project documentation (this file)
+
+
+⚙️ Installation
+Prerequisites
+Backend:
+C++ compiler
+CMake
+Boost libraries
+WebSocket++ library
+Frontend:
+Node.js (v12+ recommended)
+npm or yarn
