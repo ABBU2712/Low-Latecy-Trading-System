@@ -46,8 +46,7 @@
 └── README.md                 # Project documentation (this file)
 
 
-⚙️ Installation
-Prerequisites
+## ⚙️ Installation Prerequisites
 Backend:
 C++ compiler
 CMake
