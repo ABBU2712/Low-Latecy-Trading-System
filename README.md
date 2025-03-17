@@ -19,7 +19,7 @@
 
 ## 📂 Project Structure
 
-```plaintext
+
 .
 ├── backend
 │   ├── src
@@ -45,7 +45,7 @@
 ├── CMakeLists.txt            # Build configuration for the backend
 └── README.md                 # Project documentation (this file)
 
-
+---
 ## ⚙️ Installation Prerequisites
 Backend:
 C++ compiler
